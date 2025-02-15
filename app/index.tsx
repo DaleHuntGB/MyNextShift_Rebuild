@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1A1A',
   },
   calendarWrapper: {
-    flex: 0.5,
+    flex: 0.6,
     backgroundColor: '#1A1A1A',
     width: '100%',
     borderBottomLeftRadius: 10,
