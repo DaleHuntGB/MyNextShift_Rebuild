@@ -6,13 +6,17 @@ MyNextShift is a mobile application with the sole purpose of adding, editing and
 
 Simply open the application, select a date, `Add Shift` and you're good to go!
 
+## Demonstration
+
+- Coming Soon...
+
 ## Development
 
-1. 
+1. Install All Dependencies
 ```bash
 npm install
 ```
-2. 
+2. Run the Application
 ```bash
 npx expo start
 ```
