@@ -35,7 +35,7 @@ const App = () => {
   };
 
   const handleConfirm = (selectedTime: Date) => {
-    const formattedTime = selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const formattedTime = selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
     if (activePicker === "start") {
       setStartTime(formattedTime);
@@ -100,11 +100,11 @@ const App = () => {
 
             <View style={styles.timeContentContainer}>
               <TouchableOpacity style={styles.timePicker} onPress={() => showTimePicker("start")}>
-                <Text>{startTime ? `Start Time: ${startTime} ` : "Select Start Time "}</Text>
+                <Text>{startTime ? `${startTime} ` : "00:00 "}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.timePicker} onPress={() => showTimePicker("end")}>
-                <Text>{endTime ? `End Time: ${endTime} ` : "Select End Time "}</Text>
+                <Text>{endTime ? `${endTime} ` : "00:00 "}</Text>
               </TouchableOpacity>
 
               <DateTimePickerModal
