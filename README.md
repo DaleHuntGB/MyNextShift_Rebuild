@@ -8,7 +8,8 @@ Simply open the application, select a date, `Add Shift` and you're good to go!
 
 ## Demonstration
 
-- Coming Soon...
+<!-- Demonstration Video -->
+![](DemonstrationVideos/MyNextShiftDemostration.mp4)
 
 ## Development
 
