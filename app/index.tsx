@@ -5,8 +5,9 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const App = () => {
+  // Current Date in ISO Format
   const GetCurrentDate = () => new Date().toISOString().split('T')[0];
-
+  // State Variables
   const [selectedDate, setSelectedDate] = useState(GetCurrentDate());
   const [shifts, setShifts] = useState([]);
   const [selectedShift, setSelectedShift] = useState(null);
@@ -16,76 +17,70 @@ const App = () => {
   const [activePicker, setActivePicker] = useState<"start" | "end" | null>(null);
   const [startTime, setStartTime] = useState<string>("00:00");
   const [endTime, setEndTime] = useState<string>("00:00");
-
+  // Load Shifts on Load & Date Change
   useEffect(() => {
     loadAllShifts();
     loadShifts(selectedDate);
   }, [selectedDate]);
-
+  // Format Date for GB
   const FormatDate = () => {
     const date = new Date(selectedDate);
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   };
-
+  // Load Shifts on Date Change / Style Selected Day.
   const handleDateChange = (day: any) => {
     setSelectedDate(day.dateString);
     setSelectedShift(null);
     loadShifts(day.dateString);
   };
 
-  const showTimePicker = (type: "start" | "end") => {
-    setActivePicker(type);
-    setTimePickerVisibility(true);
-  };
-
-  const hideTimePicker = () => {
-    setTimePickerVisibility(false);
-    setActivePicker(null);
-  };
-
+  // Time Picker Functions
+  const showTimePicker = (type: "start" | "end") => { setActivePicker(type); setTimePickerVisibility(true); };
+  const hideTimePicker = () => { setTimePickerVisibility(false); setActivePicker(null); };
   const handleConfirm = (selectedTime: Date) => {
+    // Format Time to 24 Hour
     const formattedTime = selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-    activePicker === "start" ? setStartTime(formattedTime) : setEndTime(formattedTime);
-    hideTimePicker();
+    // Set Time & Hide Picker
+    activePicker === "start" ? setStartTime(formattedTime) : setEndTime(formattedTime); hideTimePicker();
   };
 
   const saveShift = async () => {
     try {
+      // Check Start / End Time
       const newShift = { id: Date.now(), startTime, endTime };
+      // Get Existing Shifts
       let existingShifts = await AsyncStorage.getItem(`shifts-${selectedDate}`);
+      // Parse Existing Shifts
       existingShifts = existingShifts ? JSON.parse(existingShifts) : [];
 
+      // If Shifts - Edit || Add
       if (selectedShift) {
-        // Edit existing shift
-        const updatedShifts = existingShifts.map(shift =>
-          shift.id === selectedShift.id ? { ...shift, startTime, endTime } : shift
-        );
+        const updatedShifts = existingShifts.map(shift => shift.id === selectedShift.id ? { ...shift, startTime, endTime } : shift );
         await AsyncStorage.setItem(`shifts-${selectedDate}`, JSON.stringify(updatedShifts));
       } else {
-        // Add new shift
         existingShifts.push(newShift);
         await AsyncStorage.setItem(`shifts-${selectedDate}`, JSON.stringify(existingShifts));
       }
-
       setSelectedShift(null);
       setIsShiftModalVisible(false);
       loadAllShifts();
       loadShifts(selectedDate);
     } catch (error) {
-      console.error("Error saving shift:", error);
+      console.error("Cannot Save Shift:", error);
     }
   };
 
+  // Load All Shifts
   const loadAllShifts = async () => {
     try {
       const keys = await AsyncStorage.getAllKeys();
       const shiftKeys = keys.filter(key => key.startsWith("shifts-"));
-
       let markedDates = {};
       for (const key of shiftKeys) {
         const date = key.replace("shifts-", "");
         const shifts = await AsyncStorage.getItem(key);
         if (shifts && JSON.parse(shifts).length > 0) {
+          // Style Dates with Shifts
           markedDates[date] = {
             customStyles: {
               container: {
