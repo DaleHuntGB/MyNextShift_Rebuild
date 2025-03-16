@@ -121,7 +121,6 @@ const App = () => {
 
       <View style={styles.shiftContainer}>
         <Text style={styles.shiftText}>{FormatDate()}</Text>
-        {/* Display Saved Shifts */}
         <Text style={styles.shiftText}>Shift: {startTime} - {endTime}</Text>
       </View>
 
