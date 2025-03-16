@@ -13,6 +13,12 @@ const App = () => {
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
+  const handleDateChange = (day: any) => {
+    setSelectedDate(day.dateString);
+    setStartTime("00:00");
+    setEndTime("00:00");
+  };
+
   const OpenAddShiftModal = () => {
     setIsShiftModalVisible(true);
   };
@@ -21,8 +27,8 @@ const App = () => {
   const [isShiftModalVisible, setIsShiftModalVisible] = useState(false);
   const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
   const [activePicker, setActivePicker] = useState<"start" | "end" | null>(null);
-  const [startTime, setStartTime] = useState<string | null>(null);
-  const [endTime, setEndTime] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState<string>("00:00");
+  const [endTime, setEndTime] = useState<string>("00:00");  
 
   const showTimePicker = (type: "start" | "end") => {
     setActivePicker(type);
@@ -53,7 +59,7 @@ const App = () => {
           style={styles.calendarContainer}
           enableSwipeMonths={true}
           monthFormat={'MMMM yyyy'}
-          onDayPress={(day) => setSelectedDate(day.dateString)}
+          onDayPress={(day) => handleDateChange(day)}
           markingType={'custom'}
           markedDates={{
             [selectedDate]: {
