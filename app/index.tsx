@@ -1,28 +1,50 @@
 import React, { useState } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, Modal, Touchable } from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, Modal } from "react-native";
 import { Calendar } from 'react-native-calendars';
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 const App = () => {
   const GetCurrentDate = () => {
-    const todayDate = new Date();
-    return todayDate.toISOString().split('T')[0];
+    return new Date().toISOString().split('T')[0];
   };
 
   const FormatDate = () => {
     const date = new Date(selectedDate);
-    let month = date.toLocaleString('default', { month: 'long' });
-    let day = date.getDate();
-    let year = date.getFullYear();
-    return `${day} ${month} ${year}`;
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  const OpenAddShiftModal = (selectedDate: string) => {
+  const OpenAddShiftModal = () => {
     setIsShiftModalVisible(true);
-    console.log('Add Shift for ' + FormatDate(selectedDate));
-  }
+  };
 
   const [selectedDate, setSelectedDate] = useState(GetCurrentDate());
   const [isShiftModalVisible, setIsShiftModalVisible] = useState(false);
+  const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
+  const [activePicker, setActivePicker] = useState<"start" | "end" | null>(null);
+  const [startTime, setStartTime] = useState<string | null>(null);
+  const [endTime, setEndTime] = useState<string | null>(null);
+
+  const showTimePicker = (type: "start" | "end") => {
+    setActivePicker(type);
+    setTimePickerVisibility(true);
+  };
+
+  const hideTimePicker = () => {
+    setTimePickerVisibility(false);
+    setActivePicker(null);
+  };
+
+  const handleConfirm = (selectedTime: Date) => {
+    const formattedTime = selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (activePicker === "start") {
+      setStartTime(formattedTime);
+    } else if (activePicker === "end") {
+      setEndTime(formattedTime);
+    }
+
+    hideTimePicker();
+  };
 
   return (
     <View style={styles.mainContainer}>
@@ -31,7 +53,7 @@ const App = () => {
           style={styles.calendarContainer}
           enableSwipeMonths={true}
           monthFormat={'MMMM yyyy'}
-          onDayPress={(day: any) => setSelectedDate(day.dateString)}
+          onDayPress={(day) => setSelectedDate(day.dateString)}
           markingType={'custom'}
           markedDates={{
             [selectedDate]: {
@@ -61,44 +83,65 @@ const App = () => {
           }}
         />
       </View>
+
       <View style={styles.shiftContainer}>
         <Text style={styles.shiftText}>{FormatDate()}</Text>
       </View>
+
       <Modal
         animationType='fade'
         transparent={true}
         visible={isShiftModalVisible}
         onRequestClose={() => setIsShiftModalVisible(false)}
       >
-        <View style={styles.shiftModalContainer} >
-          <View style={styles.shiftModalContentContainer} >
-            <Text style={styles.shiftModalContentContainerText}> {FormatDate()} </Text>
-            <View style={styles.shiftModalButtonContainer}>
-                <TouchableOpacity style={styles.saveShiftButton}
-                  onPress={() => {
-                    console.log('Save Shift for ' + FormatDate(selectedDate));
-                    setIsShiftModalVisible(false)
-                  }}
-                  >
+        <View style={styles.shiftModalContainer}>
+          <View style={styles.shiftModalContentContainer}>
+            <Text style={styles.shiftModalContentContainerText}>{FormatDate()}</Text>
+
+            <View style={styles.timeContentContainer}>
+              <TouchableOpacity style={styles.timePicker} onPress={() => showTimePicker("start")}>
+                <Text>{startTime ? `Start Time: ${startTime} ` : "Select Start Time "}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.timePicker} onPress={() => showTimePicker("end")}>
+                <Text>{endTime ? `End Time: ${endTime} ` : "Select End Time "}</Text>
+              </TouchableOpacity>
+
+              <DateTimePickerModal
+                isVisible={isTimePickerVisible}
+                mode="time"
+                onConfirm={handleConfirm}
+                onCancel={hideTimePicker}
+              />
+            </View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.saveShiftButton}
+                onPress={() => {
+                  console.log(`Shift on ${FormatDate()} from ${startTime} to ${endTime}`);
+                  setIsShiftModalVisible(false);
+                }}
+              >
                 <Text style={styles.saveButtonText}>Save</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.shiftModalButton} onPress={() => setIsShiftModalVisible(false)} >
+
+              <TouchableOpacity style={styles.shiftModalButton} onPress={() => setIsShiftModalVisible(false)}>
                 <Text style={styles.shiftModalButtonText}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
       <TouchableOpacity
         style={styles.defaultButton}
-        onPress={() => 
-          OpenAddShiftModal(selectedDate)
-        }>
+        onPress={OpenAddShiftModal}
+      >
         <Text style={styles.defaultButtonText}>Add Shift</Text>
       </TouchableOpacity>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   mainContainer: {
@@ -109,13 +152,6 @@ const styles = StyleSheet.create({
     flex: 0.6,
     backgroundColor: '#1A1A1A',
     width: '100%',
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 5,
-    elevation: 5,
   },
   calendarContainer: {
     backgroundColor: '#1A1A1A',
@@ -132,8 +168,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     padding: 24,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
   },
   shiftText: {
     fontSize: 16,
@@ -161,12 +195,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1A1A1A',
   },
-  shiftModalButtonContainer: {
+  timeContentContainer: {
     flex: 1,
+    flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
-    gap: 10
+    gap: 15
+  },
+  timePicker: {
+    backgroundColor: '#4080FF',
+    borderRadius: 10,
+    padding: 24,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   saveShiftButton: {
     backgroundColor: '#40FF40',
@@ -175,11 +218,6 @@ const styles = StyleSheet.create({
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 5,
-    elevation: 5,
     borderWidth: 1
   },
   saveButtonText: {
@@ -194,11 +232,6 @@ const styles = StyleSheet.create({
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 5,
-    elevation: 5,
     borderWidth: 1
   },
   shiftModalButtonText: {
@@ -217,6 +250,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  buttonContainer: {
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    gap: 15
+  }
 });
 
 export default App;
