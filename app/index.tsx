@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, Modal } from "react-native";
 import { Calendar } from 'react-native-calendars';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const App = () => {
   const GetCurrentDate = () => {
@@ -17,6 +18,7 @@ const App = () => {
     setSelectedDate(day.dateString);
     setStartTime("00:00");
     setEndTime("00:00");
+    loadShiftData(day.dateString);
   };
 
   const OpenAddShiftModal = () => {
@@ -50,6 +52,33 @@ const App = () => {
     }
 
     hideTimePicker();
+  };
+
+  const saveShiftData = async () => {
+    try {
+      const shiftData = { date: selectedDate, startTime, endTime };
+      await AsyncStorage.setItem(`shift-${selectedDate}`, JSON.stringify(shiftData));
+      console.log(`Shift saved for ${selectedDate}: ${startTime} - ${endTime}`);
+    } catch (error) {
+      console.error("Error saving shift:", error);
+    }
+  };
+
+  const loadShiftData = async (date) => {
+    try {
+      const savedShift = await AsyncStorage.getItem(`shift-${date}`);
+      if (savedShift) {
+        const parsedShift = JSON.parse(savedShift);
+        setStartTime(parsedShift.startTime);
+        setEndTime(parsedShift.endTime);
+        console.log(`Loaded shift for ${date}: ${parsedShift.startTime} - ${parsedShift.endTime}`);
+      } else {
+        setStartTime("00:00");  // Reset if no data found
+        setEndTime("00:00");
+      }
+    } catch (error) {
+      console.error("Error loading shift:", error);
+    }
   };
 
   return (
@@ -92,6 +121,8 @@ const App = () => {
 
       <View style={styles.shiftContainer}>
         <Text style={styles.shiftText}>{FormatDate()}</Text>
+        {/* Display Saved Shifts */}
+        <Text style={styles.shiftText}>Shift: {startTime} - {endTime}</Text>
       </View>
 
       <Modal
@@ -125,6 +156,7 @@ const App = () => {
                 style={styles.saveShiftButton}
                 onPress={() => {
                   console.log(`Shift on ${FormatDate()} from ${startTime} to ${endTime}`);
+                  saveShiftData();
                   setIsShiftModalVisible(false);
                 }}
               >
