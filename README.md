@@ -8,9 +8,11 @@ Simply open the application, select a date, `Add Shift` and you're good to go!
 
 ## Development
 
-1. ```bash
+1. 
+```bash
 npm install
 ```
-2. ```bash
+2. 
+```bash
 npx expo start
 ```
