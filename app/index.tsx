@@ -73,11 +73,7 @@ const App = () => {
 
       if (selectedShift) {
         // Edit existing shift
-        existingShifts = existingShifts.map(shift =>
-          shift.id === selectedShift.id
-            ? { ...shift, startTime, endTime, income: calculatedIncome }
-            : shift
-        );
+        existingShifts = existingShifts.map(shift => shift.id === selectedShift.id ? { ...shift, startTime, endTime, income: calculatedIncome } : shift );
       } else {
         // Add new shift
         const newShift = { id: Date.now(), startTime, endTime, income: calculatedIncome };
@@ -107,7 +103,7 @@ const App = () => {
           markedDates[date] = {
             customStyles: {
               container: {
-                borderRadius: 10,
+                borderRadius: 3,
                 borderWidth: 1,
                 borderColor: '#FFFFFF'
               },
@@ -164,7 +160,7 @@ const App = () => {
               selected: true,
               customStyles: {
                 container: {
-                  borderRadius: 10,
+                  borderRadius: 3,
                   borderWidth: 1,
                   borderColor: '#8080FF'
                 },
@@ -228,7 +224,6 @@ const App = () => {
               <TouchableOpacity style={styles.timePicker} onPress={() => showTimePicker("end")}>
                 <Text>{endTime} </Text>
               </TouchableOpacity>
-              <Text style={styles.incomeText}>Estimated Income: £{income.toFixed(2)}</Text>
               <DateTimePickerModal
                 isVisible={isTimePickerVisible}
                 mode="time"
@@ -241,15 +236,18 @@ const App = () => {
               <TouchableOpacity style={styles.saveShiftButton} onPress={saveShift}>
                 <Text style={styles.saveButtonText}>{selectedShift ? "Save Shift" : "Add Shift"}</Text>
               </TouchableOpacity>
-              {selectedShift && (
+
+              {selectedShift ? (
                 <TouchableOpacity style={styles.deleteShiftButton} onPress={() => deleteShift(selectedShift.id)}>
                   <Text style={styles.deleteButtonText}>Delete Shift</Text>
                 </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.shiftModalButton} onPress={() => setIsShiftModalVisible(false)}>
+                  <Text style={styles.shiftModalButtonText}>Close</Text>
+                </TouchableOpacity>
               )}
-              <TouchableOpacity style={styles.shiftModalButton} onPress={() => setIsShiftModalVisible(false)}>
-                <Text style={styles.shiftModalButtonText}>Close</Text>
-              </TouchableOpacity>
             </View>
+
           </View>
         </View>
       </Modal>
@@ -274,16 +272,15 @@ const styles = StyleSheet.create({
   calendarWrapper: { flex: 0.75, backgroundColor: '#1A1A1A', width: '100%' },
   calendarContainer: {
     backgroundColor: '#1A1A1A',
-    borderRadius: 10,
-    padding: 24,
+    padding: 10,
     width: '100%',
   },
   shiftContainer: {
-    flex: 0.6,
+    flex: 0.5,
     backgroundColor: '#CCCCCC',
     justifyContent: 'flex-start',
     alignItems: 'center',
-    padding: 24,
+    padding: 10,
   },
   shiftText: { fontSize: 16, fontWeight: 'bold', color: '#1A1A1A' },
   shiftModalContainer: {
@@ -294,12 +291,13 @@ const styles = StyleSheet.create({
   },
   shiftModalContentContainer: {
     backgroundColor: '#CCCCCC',
-    borderRadius: 10,
-    padding: 24,
+    borderRadius: 3,
+    padding: 10,
     width: '80%',
-    justifyContent: 'space-evenly',
+    justifyContent: 'center',
+    gap: 5,
     alignItems: 'center',
-    height: '55%',
+    flex: 0.25,
     borderWidth: 1
   },
   shiftModalContentContainerText: {
@@ -317,8 +315,8 @@ const styles = StyleSheet.create({
   },
   timePicker: {
     backgroundColor: '#4080FF',
-    borderRadius: 10,
-    padding: 24,
+    borderRadius: 3,
+    padding: 10,
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
@@ -331,9 +329,9 @@ const styles = StyleSheet.create({
   },
   saveShiftButton: {
     backgroundColor: '#40FF40',
-    borderRadius: 10,
-    padding: 24,
-    width: '100%',
+    borderRadius: 3,
+    padding: 10,
+    width: '33%',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1
@@ -341,9 +339,9 @@ const styles = StyleSheet.create({
   saveButtonText: { color: 'black', fontSize: 16, fontWeight: 'bold' },
   shiftModalButton: {
     backgroundColor: '#4080FF',
-    borderRadius: 10,
-    padding: 24,
-    width: '100%',
+    borderRadius: 3,
+    padding: 10,
+    width: '33%',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1
@@ -358,15 +356,16 @@ const styles = StyleSheet.create({
   defaultButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   buttonContainer: {
     flex: 1,
-    flexDirection: 'column',
+    // backgroundColor: '#000000',
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
-    gap: 15
+    gap: 10
   },
   shiftItem: {
     backgroundColor: '#BBBBBB',
-    borderRadius: 10,
+    borderRadius: 3,
     padding: 20,
     width: '100%',
     justifyContent: 'center',
@@ -377,9 +376,9 @@ const styles = StyleSheet.create({
   selectedShift: { backgroundColor: '#4080FF' },
   deleteShiftButton: {
     backgroundColor: '#FF4040',
-    borderRadius: 10,
-    padding: 24,
-    width: '100%',
+    borderRadius: 3,
+    padding: 10,
+    width: '33%',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1
@@ -397,7 +396,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     backgroundColor: '#404040',
-    borderRadius: 10,
+    borderRadius: 3,
     padding: 10,
     marginVertical: 10,
   },
