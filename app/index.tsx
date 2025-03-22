@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, Modal, FlatList, ScrollView } from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, Modal, ScrollView } from "react-native";
 import { Calendar } from 'react-native-calendars';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const App = () => {
-  // Current Date in ISO Format
   const GetCurrentDate = () => new Date().toISOString().split('T')[0];
-  // State Variables
+
   const [selectedDate, setSelectedDate] = useState(GetCurrentDate());
   const [shifts, setShifts] = useState([]);
   const [selectedShift, setSelectedShift] = useState(null);
@@ -17,50 +16,76 @@ const App = () => {
   const [activePicker, setActivePicker] = useState<"start" | "end" | null>(null);
   const [startTime, setStartTime] = useState<string>("00:00");
   const [endTime, setEndTime] = useState<string>("00:00");
-  // Load Shifts on Load & Date Change
+  const [income, setIncome] = useState<number>(0);
+
   useEffect(() => {
     loadAllShifts();
     loadShifts(selectedDate);
   }, [selectedDate]);
-  // Format Date for GB
+
+  useEffect(() => {
+    setIncome(calculateIncome());
+  }, [startTime, endTime]);
+
   const FormatDate = () => {
     const date = new Date(selectedDate);
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   };
-  // Load Shifts on Date Change / Style Selected Day.
+
   const handleDateChange = (day: any) => {
     setSelectedDate(day.dateString);
     setSelectedShift(null);
     loadShifts(day.dateString);
   };
 
-  // Time Picker Functions
-  const showTimePicker = (type: "start" | "end") => { setActivePicker(type); setTimePickerVisibility(true); };
-  const hideTimePicker = () => { setTimePickerVisibility(false); setActivePicker(null); };
+  const calculateIncome = () => {
+    const start = new Date(`${selectedDate} ${startTime}`);
+    const end = new Date(`${selectedDate} ${endTime}`);
+    const hours = (end.getTime() - start.getTime()) / 1000 / 60 / 60;
+    return parseFloat((hours * 12.60).toFixed(2));
+  };
+
+  const showTimePicker = (type: "start" | "end") => {
+    setActivePicker(type);
+    setTimePickerVisibility(true);
+  };
+
+  const hideTimePicker = () => {
+    setTimePickerVisibility(false);
+    setActivePicker(null);
+  };
+
   const handleConfirm = (selectedTime: Date) => {
-    // Format Time to 24 Hour
-    const formattedTime = selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-    // Set Time & Hide Picker
-    activePicker === "start" ? setStartTime(formattedTime) : setEndTime(formattedTime); hideTimePicker();
+    const formattedTime = selectedTime.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    activePicker === "start" ? setStartTime(formattedTime) : setEndTime(formattedTime);
+    hideTimePicker();
   };
 
   const saveShift = async () => {
     try {
-      // Check Start / End Time
-      const newShift = { id: Date.now(), startTime, endTime };
-      // Get Existing Shifts
+      const calculatedIncome = calculateIncome();
       let existingShifts = await AsyncStorage.getItem(`shifts-${selectedDate}`);
-      // Parse Existing Shifts
       existingShifts = existingShifts ? JSON.parse(existingShifts) : [];
 
-      // If Shifts - Edit || Add
       if (selectedShift) {
-        const updatedShifts = existingShifts.map(shift => shift.id === selectedShift.id ? { ...shift, startTime, endTime } : shift );
-        await AsyncStorage.setItem(`shifts-${selectedDate}`, JSON.stringify(updatedShifts));
+        // Edit existing shift
+        existingShifts = existingShifts.map(shift =>
+          shift.id === selectedShift.id
+            ? { ...shift, startTime, endTime, income: calculatedIncome }
+            : shift
+        );
       } else {
+        // Add new shift
+        const newShift = { id: Date.now(), startTime, endTime, income: calculatedIncome };
         existingShifts.push(newShift);
-        await AsyncStorage.setItem(`shifts-${selectedDate}`, JSON.stringify(existingShifts));
       }
+
+      await AsyncStorage.setItem(`shifts-${selectedDate}`, JSON.stringify(existingShifts));
+
       setSelectedShift(null);
       setIsShiftModalVisible(false);
       loadAllShifts();
@@ -70,7 +95,6 @@ const App = () => {
     }
   };
 
-  // Load All Shifts
   const loadAllShifts = async () => {
     try {
       const keys = await AsyncStorage.getAllKeys();
@@ -80,7 +104,6 @@ const App = () => {
         const date = key.replace("shifts-", "");
         const shifts = await AsyncStorage.getItem(key);
         if (shifts && JSON.parse(shifts).length > 0) {
-          // Style Dates with Shifts
           markedDates[date] = {
             customStyles: {
               container: {
@@ -119,6 +142,8 @@ const App = () => {
       setSelectedShift(null);
       loadAllShifts();
       loadShifts(selectedDate);
+      // Close
+      setIsShiftModalVisible(false);
     } catch (error) {
       console.error("Error deleting shift:", error);
     }
@@ -172,13 +197,16 @@ const App = () => {
                   setSelectedShift(shift);
                   setStartTime(shift.startTime);
                   setEndTime(shift.endTime);
+                  setIsShiftModalVisible(true);
                 }}
               >
-                <Text style={styles.shiftText}>{`${shift.startTime} - ${shift.endTime}`}</Text>
+                <Text style={styles.shiftText}>
+                  {`${shift.startTime} - ${shift.endTime} | £${shift.income.toFixed(2)}`}
+                </Text>
               </TouchableOpacity>
             ))
           ) : (
-            <Text style={styles.noShiftsText}>No Shifts Added</Text>
+            <Text style={styles.noShiftsText}>No Shifts Yet</Text>
           )}
         </ScrollView>
       </View>
@@ -200,6 +228,7 @@ const App = () => {
               <TouchableOpacity style={styles.timePicker} onPress={() => showTimePicker("end")}>
                 <Text>{endTime} </Text>
               </TouchableOpacity>
+              <Text style={styles.incomeText}>Estimated Income: £{income.toFixed(2)}</Text>
               <DateTimePickerModal
                 isVisible={isTimePickerVisible}
                 mode="time"
@@ -210,7 +239,7 @@ const App = () => {
 
             <View style={styles.buttonContainer}>
               <TouchableOpacity style={styles.saveShiftButton} onPress={saveShift}>
-                <Text style={styles.saveButtonText}>{selectedShift ? "Edit Shift" : "Add Shift"}</Text>
+                <Text style={styles.saveButtonText}>{selectedShift ? "Save Shift" : "Add Shift"}</Text>
               </TouchableOpacity>
               {selectedShift && (
                 <TouchableOpacity style={styles.deleteShiftButton} onPress={() => deleteShift(selectedShift.id)}>
@@ -227,31 +256,26 @@ const App = () => {
 
       <TouchableOpacity
         style={styles.defaultButton}
-        onPress={() => setIsShiftModalVisible(true)}
+        onPress={() => {
+          setStartTime("00:00");
+          setEndTime("00:00");
+          setSelectedShift(null);
+          setIsShiftModalVisible(true);
+        }}
       >
-        <Text style={styles.defaultButtonText}>{selectedShift ? "Edit Shift" : "Add Shift"}</Text>
+        <Text style={styles.defaultButtonText}>Add Shift</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: '#1A1A1A',
-  },
-  calendarWrapper: {
-    flex: 0.6,
-    backgroundColor: '#1A1A1A',
-    width: '100%',
-  },
+  mainContainer: { flex: 1, backgroundColor: '#1A1A1A' },
+  calendarWrapper: { flex: 0.75, backgroundColor: '#1A1A1A', width: '100%' },
   calendarContainer: {
     backgroundColor: '#1A1A1A',
     borderRadius: 10,
-    paddingTop: 24,
-    paddingRight: 24,
-    paddingBottom: 24,
-    paddingLeft: 24,
+    padding: 24,
     width: '100%',
   },
   shiftContainer: {
@@ -261,11 +285,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
   },
-  shiftText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-  },
+  shiftText: { fontSize: 16, fontWeight: 'bold', color: '#1A1A1A' },
   shiftModalContainer: {
     flex: 1,
     backgroundColor: '#1A1A1A',
@@ -279,7 +299,7 @@ const styles = StyleSheet.create({
     width: '80%',
     justifyContent: 'space-evenly',
     alignItems: 'center',
-    height: '50%',
+    height: '55%',
     borderWidth: 1
   },
   shiftModalContentContainerText: {
@@ -303,6 +323,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  incomeText: {
+    marginTop: 10,
+    fontWeight: 'bold',
+    fontSize: 16,
+    color: '#1A1A1A'
+  },
   saveShiftButton: {
     backgroundColor: '#40FF40',
     borderRadius: 10,
@@ -312,11 +338,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1
   },
-  saveButtonText: {
-    color: 'black',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  saveButtonText: { color: 'black', fontSize: 16, fontWeight: 'bold' },
   shiftModalButton: {
     backgroundColor: '#4080FF',
     borderRadius: 10,
@@ -326,22 +348,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1
   },
-  shiftModalButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  shiftModalButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   defaultButton: {
     flex: 0.1,
     backgroundColor: '#4080FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  defaultButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  defaultButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   buttonContainer: {
     flex: 1,
     flexDirection: 'column',
@@ -360,9 +374,7 @@ const styles = StyleSheet.create({
     marginVertical: 3,
     borderWidth: 1
   },
-  selectedShift: {
-    backgroundColor: '#4080FF',
-  },
+  selectedShift: { backgroundColor: '#4080FF' },
   deleteShiftButton: {
     backgroundColor: '#FF4040',
     borderRadius: 10,
@@ -372,17 +384,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1
   },
-  deleteButtonText: {
-    color: 'black',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  deleteButtonText: { color: 'black', fontSize: 16, fontWeight: 'bold' },
   noShiftsText: {
-    fontSize: 16,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+    textAlign: 'center',
   },
   shiftList: {
     flex: 1,
