@@ -59,11 +59,7 @@ const App = () => {
   };
 
   const handleConfirm = (selectedTime: Date) => {
-    const formattedTime = selectedTime.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
+    const formattedTime = selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     activePicker === "start" ? setStartTime(formattedTime) : setEndTime(formattedTime);
     hideTimePicker();
   };
@@ -75,10 +71,8 @@ const App = () => {
       existingShifts = existingShifts ? JSON.parse(existingShifts) : [];
 
       if (selectedShift) {
-        // Edit existing shift
         existingShifts = existingShifts.map(shift => shift.id === selectedShift.id ? { ...shift, startTime, endTime, income: calculatedIncome, hoursWorked } : shift );
       } else {
-        // Add new shift
         const newShift = { id: Date.now(), startTime, endTime, income: calculatedIncome, hoursWorked};
         existingShifts.push(newShift);
       }
@@ -141,7 +135,6 @@ const App = () => {
       setSelectedShift(null);
       loadAllShifts();
       loadShifts(selectedDate);
-      // Close
       setIsShiftModalVisible(false);
     } catch (error) {
       console.error("Error deleting shift:", error);
