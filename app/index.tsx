@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   calendarContainer: {
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#121212',
     padding: 10,
     borderRadius: 10,
     width: '100%',
