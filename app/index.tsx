@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const App = () => {
   const GetCurrentDate = () => new Date().toISOString().split('T')[0];
+  const GetCurrentTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
   const [selectedDate, setSelectedDate] = useState(GetCurrentDate());
   const [shifts, setShifts] = useState([]);
@@ -17,6 +18,7 @@ const App = () => {
   const [startTime, setStartTime] = useState<string>("00:00");
   const [endTime, setEndTime] = useState<string>("00:00");
   const [income, setIncome] = useState<number>(0);
+  const [hoursWorked, setHoursWorked] = useState<number>(0);
 
   useEffect(() => {
     loadAllShifts();
@@ -42,6 +44,7 @@ const App = () => {
     const start = new Date(`${selectedDate} ${startTime}`);
     const end = new Date(`${selectedDate} ${endTime}`);
     const hours = (end.getTime() - start.getTime()) / 1000 / 60 / 60;
+    setHoursWorked(hours);
     return parseFloat((hours * 12.60).toFixed(2));
   };
 
@@ -73,10 +76,10 @@ const App = () => {
 
       if (selectedShift) {
         // Edit existing shift
-        existingShifts = existingShifts.map(shift => shift.id === selectedShift.id ? { ...shift, startTime, endTime, income: calculatedIncome } : shift );
+        existingShifts = existingShifts.map(shift => shift.id === selectedShift.id ? { ...shift, startTime, endTime, income: calculatedIncome, hoursWorked } : shift );
       } else {
         // Add new shift
-        const newShift = { id: Date.now(), startTime, endTime, income: calculatedIncome };
+        const newShift = { id: Date.now(), startTime, endTime, income: calculatedIncome, hoursWorked};
         existingShifts.push(newShift);
       }
 
@@ -197,7 +200,7 @@ const App = () => {
                 }}
               >
                 <Text style={styles.shiftText}>
-                  {`${shift.startTime} - ${shift.endTime} | £${shift.income.toFixed(2)}`}
+                  {`${shift.startTime} - ${shift.endTime} | £${shift.income.toFixed(2)} | ${shift.hoursWorked}hrs`}
                 </Text>
               </TouchableOpacity>
             ))
@@ -255,7 +258,7 @@ const App = () => {
       <TouchableOpacity
         style={styles.defaultButton}
         onPress={() => {
-          setStartTime("00:00");
+          setStartTime(GetCurrentTime());
           setEndTime("00:00");
           setSelectedShift(null);
           setIsShiftModalVisible(true);
