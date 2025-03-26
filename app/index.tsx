@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, Modal, ScrollView } from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput } from "react-native";
 import { Calendar } from 'react-native-calendars';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +19,10 @@ const App = () => {
   const [endTime, setEndTime] = useState<string>("00:00");
   const [income, setIncome] = useState<number>(0);
   const [hoursWorked, setHoursWorked] = useState<number>(0);
+  const [hourlyRate, setHourlyRate] = useState<number>(12.60);
+  const [isSettingsVisible, setIsSettingsVisible] = useState(false);
+  const [tempRate, setTempRate] = useState(hourlyRate.toString());
+  const [shouldUpdateShifts, setShouldUpdateShifts] = useState(false);
 
   useEffect(() => {
     loadAllShifts();
@@ -28,6 +32,24 @@ const App = () => {
   useEffect(() => {
     setIncome(calculateIncome());
   }, [startTime, endTime]);
+
+  useEffect(() => {
+    (async () => {
+      const savedRate = await AsyncStorage.getItem('hourlyRate');
+      if (savedRate) {
+        setHourlyRate(parseFloat(savedRate));
+        setTempRate(parseFloat(savedRate).toString());
+      }
+    })();
+  }, []);
+
+
+  useEffect(() => {
+    if (shouldUpdateShifts) {
+      updateExistingShiftIncome();
+      setShouldUpdateShifts(false);
+    }
+  }, [hourlyRate]);
 
   const FormatDate = () => {
     const date = new Date(selectedDate);
@@ -45,7 +67,7 @@ const App = () => {
     const end = new Date(`${selectedDate} ${endTime}`);
     const hours = (end.getTime() - start.getTime()) / 1000 / 60 / 60;
     setHoursWorked(hours);
-    return parseFloat((hours * 12.60).toFixed(2));
+    return parseFloat((hours * hourlyRate).toFixed(2));
   };
 
   const showTimePicker = (type: "start" | "end") => {
@@ -141,8 +163,39 @@ const App = () => {
     }
   };
 
+  const updateExistingShiftIncome = async () => {
+    try {
+      const savedShifts = await AsyncStorage.getItem(`shifts-${selectedDate}`);
+      const parsedShifts = savedShifts ? JSON.parse(savedShifts) : [];
+  
+      const updatedShifts = parsedShifts.map(shift => {
+        const start = new Date(`${selectedDate} ${shift.startTime}`);
+        const end = new Date(`${selectedDate} ${shift.endTime}`);
+        const hours = (end - start) / 3600000;
+        return {
+          ...shift,
+          hoursWorked: hours,
+          income: parseFloat((hours * hourlyRate).toFixed(2)),
+        };
+      });
+  
+      await AsyncStorage.setItem(`shifts-${selectedDate}`, JSON.stringify(updatedShifts));
+      loadAllShifts();
+      loadShifts(selectedDate);
+    } catch (error) {
+      console.error("Error updating all shift incomes:", error);
+    }
+  };
+  
+
   return (
     <View style={styles.mainContainer}>
+    <View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: 10 }}>
+      <TouchableOpacity onPress={() => setIsSettingsVisible(true)}>
+        <Text style={{ color: '#8080FF', fontWeight: 'bold', fontSize: 16 }}>Settings</Text>
+      </TouchableOpacity>
+    </View>
+
       <View style={styles.calendarWrapper}>
         <Calendar
           style={styles.calendarContainer}
@@ -247,6 +300,55 @@ const App = () => {
           </View>
         </View>
       </Modal>
+
+      <Modal
+          animationType="fade"
+          transparent={true}
+          visible={isSettingsVisible}
+          onRequestClose={() => setIsSettingsVisible(false)}
+        >
+          <View style={styles.shiftModalContainer}>
+            <View style={styles.shiftModalContentContainer}>
+              <Text style={styles.shiftModalContentContainerText}>Settings</Text>
+
+              <View style={{ width: '100%', marginBottom: 20 }}>
+              <Text style={{ marginBottom: 8, fontWeight: '600' }}>Hourly Rate (£):</Text>
+              <TextInput
+                style={{
+                  backgroundColor: '#E0E0E0',
+                  padding: 12,
+                  borderRadius: 8,
+                  fontSize: 16,
+                  color: '#333',
+                  textAlign: 'center',
+                  justifyContent: 'center',
+                  alignContent: 'center',
+                }}
+                keyboardType="decimal-pad"
+                value={tempRate}
+                onChangeText={setTempRate}
+              />
+            </View>
+            <TouchableOpacity
+              style={styles.saveShiftButton}
+              onPress={async () => {
+                const rate = parseFloat(tempRate);
+                if (!isNaN(rate)) {
+                  await AsyncStorage.setItem('hourlyRate', rate.toString());
+                  setHourlyRate(rate);
+                  setShouldUpdateShifts(true);
+                  setIsSettingsVisible(false);
+                } else {
+                  alert("Please enter a valid number.");
+                }
+              }}
+            >
+              <Text style={styles.saveButtonText}>Save</Text>
+            </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
 
       <TouchableOpacity
         style={styles.defaultButton}
